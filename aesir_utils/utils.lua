@@ -1,5 +1,5 @@
 --[[
-Some of the function you see here are taken from ScaleformUI utils, 
+Some of the function you see here are taken from ScaleformUI utils,
 courtesy of manups4e (manups4e@gmail.com | https:https://github.com/manups4e)
 Author: manups4e
 Source: https://github.com/manups4e
@@ -11,6 +11,11 @@ Source: https://github.com/manups4e
 ---@diagnostic disable-next-line: duplicate-doc-alias
 ---@alias integer number
 
+-- This value is the exact result of GetAspectRatio(false) native in 16:9
+-- doing 16.0 / 9.0 in Lua changes the value into a 1.7777777777778 due to the floating point precision 
+-- GTA natives are coded in C with Float a 32 bit while Lua uses Double at 64 bit which are more precise 
+-- but change the outcome resulting IsWideScreen check to always return true even when should be false.
+-- For tactical war precision, we keep the native value from the game.
 local RATIO_16_9 = 1.7777777910233
 
 function math.round(num, numDecimalPlaces)
@@ -117,63 +122,49 @@ end
 
 function AdjustNormalized16_9ValuesForCurrentAspectRatio(hAlign, x, y, w, h)
     local currentRatio = GetAspectRatio(false)
-    
+
     -- SuperWide Check
     if IsSuperWideScreen() then currentRatio = RATIO_16_9 end -- Clamp
 
     local fScalar = RATIO_16_9 / currentRatio
     local fAdjustPos = 1.0 - fScalar
-    
+
     -- Clean float noise
     if math.abs(fAdjustPos) < 0.001 then fAdjustPos = 0.0 end
 
-    -- 1. Scaliamo sempre la larghezza
+    -- 1. always scale width
     w = w * fScalar
 
-    -- 2. Gestione Posizione X in base all'allineamento
-    -- Se usi x come OFFSET (margine), non devi applicare fAdjustPos su R e L nello stesso modo di R*
-    
-    if hAlign == 'C' then -- CENTRE
+    -- 2. handle x position based on alignment
+    if hAlign == 'C' then          -- CENTRE
         x = x * fScalar
-        x = x + (fAdjustPos * 0.5) -- Qui serve per ricentrare il 16:9 nel formato corrente
-        
-    elseif hAlign == 'R' then -- RIGHT
+        x = x + (fAdjustPos * 0.5) -- this centers the 16:9 into current format
+    elseif hAlign == 'R' then      -- RIGHT
         x = x * fScalar
-        -- RIMUOVIAMO fAdjustPos.
-        -- Se lo lasciassi, x=0 diventerebbe -0.11 (shift a sinistra).
-        -- Togliendolo, x=0 rimane 0 (ancorato perfettamente a destra).
-
-    else -- LEFT / DEFAULT
+    else                           -- LEFT / DEFAULT
         x = x * fScalar
-        -- Qui potresti lasciare o togliere fAdjustPos a seconda se vuoi 
-        -- che x=0 sia il bordo schermo fisico o il bordo virtuale 16:9.
-        -- Per un HUD moderno, toglilo.
     end
 
-    -- SuperWide fix (quello che restringe verso il centro)
+    -- SuperWide fix
     x, w = AdjustForSuperWidescreen(x, w)
-
     return vector2(x, y), vector2(w, h)
 end
 
 function CalculateHudPosition(offset, size, alignX, alignY)
-        local x0, y0, x1, y1 = GetMinSafeZone(1.0)
-        local safeMin, safeMax = vector2(x0,y0), vector2(x1,y1)
-        local origin = vector2(0.0, 0.0)
+    local x0, y0, x1, y1 = GetMinSafeZone(1.0)
+    local safeMin, safeMax = vector2(x0, y0), vector2(x1, y1)
+    local origin = vector2(0.0, 0.0)
 
-    -- === ASSE X ===
     if alignX == 'L' then
         origin = vector2(safeMin.x, origin.y)
     elseif alignX == 'R' then
         -- SafeMax - Size
         origin = vector2(safeMax.x - size.x, origin.y)
     elseif alignX == 'C' then
-        -- CORREZIONE BUG R*: Uso (Min + Max - Size) / 2
         local centerX = (safeMin.x + safeMax.x - size.x) * 0.5
         origin = vector2(centerX, origin.y)
     end
 
-    -- === ASSE Y ===
     if alignY == 'T' then
         origin = vector2(origin.x, safeMin.y)
     elseif alignY == 'B' then
@@ -183,18 +174,18 @@ function CalculateHudPosition(offset, size, alignX, alignY)
         origin = vector2(origin.x, centerY)
     end
 
-    -- Sommiamo l'offset (che è stato scalato da AdjustNormalized)
     return origin + offset
 end
+
 function GetFormatFromString(hAlign)
     if hAlign == 'c' or hAlign == 'C' then
-        return 1 --WIDESCREEN_FORMAT_CENTRE
+        return 1
     elseif hAlign == 'L' or hAlign == 'l' then
-        return 2 -- WIDESCREEN_FORMAT_LEFT
+        return 2
     elseif hAlign == 'S' or hAlign == 's' then
-        return 0 -- WIDESCREEN_FORMAT_STRETCH
+        return 0
     elseif hAlign == 'r' or hAlign == 'R' then
-        return 3 -- WIDESCREEN_FORMAT_RIGHT
+        return 3
     end
     return 1
 end
@@ -295,32 +286,31 @@ function GetMinSafeZoneForScaleformMovies(aspectRatio)
     return x0, y0, x1, y1
 end
 
-
-function GetAnchorResolutionCoords(alignX, alignY, x,y,w,h)
-    local res = ConvertResolutionCoordsToScreenCoords(x,y)
+function GetAnchorResolutionCoords(alignX, alignY, x, y, w, h)
+    local res = ConvertResolutionCoordsToScreenCoords(x, y)
     local siz = ConvertResolutionSizeToScreenSize(w, h)
-    GetAnchorScreenCoords(alignX, alignY, res.x,res.y,siz.w,siz.h)
+    GetAnchorScreenCoords(alignX, alignY, res.x, res.y, siz.w, siz.h)
 end
 
-function GetAnchorScreenCoords(alignX, alignY, x,y,w,h)
-    local component      = {}
+function GetAnchorScreenCoords(alignX, alignY, x, y, w, h)
+    local component   = {}
 
-    local _cv, _cs       = AdjustNormalized16_9ValuesForCurrentAspectRatio(GetFormatFromString(alignX), x, y, w, h)
-    local cv             = CalculateHudPosition(_cv, _cs, alignX, alignY)
+    local _cv, _cs    = AdjustNormalized16_9ValuesForCurrentAspectRatio(GetFormatFromString(alignX), x, y, w, h)
+    local cv          = CalculateHudPosition(_cv, _cs, alignX, alignY)
 
-    component.Width      = _cs.x
-    component.Height     = _cs.y
+    component.Width   = _cs.x
+    component.Height  = _cs.y
 
-    component.LeftX      = cv.x
-    component.TopY       = cv.y
-    component.RightX     = cv.x + component.Width
-    component.BottomY    = cv.y + component.Height
+    component.LeftX   = cv.x
+    component.TopY    = cv.y
+    component.RightX  = cv.x + component.Width
+    component.BottomY = cv.y + component.Height
 
-    component.CenterX    = component.LeftX + (component.Width * 0.5)
-    component.CenterY    = component.TopY + (component.Height * 0.5)
+    component.CenterX = component.LeftX + (component.Width * 0.5)
+    component.CenterY = component.TopY + (component.Height * 0.5)
 
-    component.x          = component.LeftX
-    component.y          = component.TopY
+    component.x       = component.LeftX
+    component.y       = component.TopY
 
     return component
 end
