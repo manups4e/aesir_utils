@@ -147,28 +147,25 @@ end
 function CalculateHudPosition(offset, size, alignX, alignY)
     local x0, y0, x1, y1 = GetMinSafeZone(1.0)
     local safeMin, safeMax = vector2(x0, y0), vector2(x1, y1)
-    local origin = vector2(0.0, 0.0)
+    local posX, posY = 0.0, 0.0
 
     if alignX == 'L' then
-        origin = vector2(safeMin.x, origin.y)
+        posX = safeMin.x
     elseif alignX == 'R' then
-        -- SafeMax - Size
-        origin = vector2(safeMax.x - size.x, origin.y)
+        posX = safeMax.x - size.x
     elseif alignX == 'C' then
-        local centerX = (safeMin.x + safeMax.x - size.x) * 0.5
-        origin = vector2(centerX, origin.y)
+        posX = (safeMin.x + safeMax.x - size.x) * 0.5
     end
 
     if alignY == 'T' then
-        origin = vector2(origin.x, safeMin.y)
+        posY = safeMin.y
     elseif alignY == 'B' then
-        origin = vector2(origin.x, safeMax.y - size.y)
+        posY = safeMax.y - size.y
     elseif alignY == 'C' then
-        local centerY = (safeMin.y + safeMax.y - size.y) * 0.5
-        origin = vector2(origin.x, centerY)
+        posY = (safeMin.y + safeMax.y - size.y) * 0.5
     end
 
-    return origin + offset
+    return vector2(posX, posY) + offset
 end
 
 function GetWideScreen()
