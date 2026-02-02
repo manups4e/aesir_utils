@@ -137,7 +137,7 @@ Essential when calculating width/height for different rendering methods.
 
 ## 🤝 Credits
 * **manups4e** - Original research on Scaleform Utils.
-* **Glithdetector** - Original minimap anchor maker.
+* **GlitchDetector** - Original minimap anchor maker.
 
 ---
 
