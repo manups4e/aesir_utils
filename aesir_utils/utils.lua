@@ -108,9 +108,7 @@ end
 ---@param scaleformHeight number
 ---@return vector2
 function ConvertScaleformSizeToScreenSize(scaleformWidth, scaleformHeight)
-    -- Normalize size to 0.0 - 1.0 range
-    local w, h = GetActualScreenResolution()
-    return vector2((scaleformWidth / w), (scaleformHeight / h))
+    return vector2(scaleformWidth / 1280, scaleformHeight / 720)
 end
 
 function ConvertResolutionSizeToScreenSize(width, height)
@@ -136,13 +134,9 @@ function AdjustNormalized16_9ValuesForCurrentAspectRatio(hAlign, x, y, w, h)
     w = w * fScalar
 
     -- 2. handle x position based on alignment
-    if hAlign == 'C' then          -- CENTRE
-        x = x * fScalar
+    x = x * fScalar
+    if hAlign == 'C' then -- CENTRE
         x = x + (fAdjustPos * 0.5) -- this centers the 16:9 into current format
-    elseif hAlign == 'R' then      -- RIGHT
-        x = x * fScalar
-    else                           -- LEFT / DEFAULT
-        x = x * fScalar
     end
 
     -- SuperWide fix
@@ -153,41 +147,25 @@ end
 function CalculateHudPosition(offset, size, alignX, alignY)
     local x0, y0, x1, y1 = GetMinSafeZone(1.0)
     local safeMin, safeMax = vector2(x0, y0), vector2(x1, y1)
-    local origin = vector2(0.0, 0.0)
+    local posX, posY = 0.0, 0.0
 
     if alignX == 'L' then
-        origin = vector2(safeMin.x, origin.y)
+        posX = safeMin.x
     elseif alignX == 'R' then
-        -- SafeMax - Size
-        origin = vector2(safeMax.x - size.x, origin.y)
+        posX = safeMax.x - size.x
     elseif alignX == 'C' then
-        local centerX = (safeMin.x + safeMax.x - size.x) * 0.5
-        origin = vector2(centerX, origin.y)
+        posX = (safeMin.x + safeMax.x - size.x) * 0.5
     end
 
     if alignY == 'T' then
-        origin = vector2(origin.x, safeMin.y)
+        posY = safeMin.y
     elseif alignY == 'B' then
-        origin = vector2(origin.x, safeMax.y - size.y)
+        posY = safeMax.y - size.y
     elseif alignY == 'C' then
-        local centerY = (safeMin.y + safeMax.y - size.y) * 0.5
-        origin = vector2(origin.x, centerY)
+        posY = (safeMin.y + safeMax.y - size.y) * 0.5
     end
 
-    return origin + offset
-end
-
-function GetFormatFromString(hAlign)
-    if hAlign == 'c' or hAlign == 'C' then
-        return 1
-    elseif hAlign == 'L' or hAlign == 'l' then
-        return 2
-    elseif hAlign == 'S' or hAlign == 's' then
-        return 0
-    elseif hAlign == 'r' or hAlign == 'R' then
-        return 3
-    end
-    return 1
+    return vector2(posX, posY) + offset
 end
 
 function GetWideScreen()
@@ -195,9 +173,11 @@ function GetWideScreen()
     local fLogicalAspectRatio = GetAspectRatio(false)
     local w, h = GetActualScreenResolution()
     local fPhysicalAspectRatio = w / h
+
     if fPhysicalAspectRatio <= WIDESCREEN_ASPECT then
         return false
     end
+
     return fLogicalAspectRatio > WIDESCREEN_ASPECT
 end
 
@@ -206,7 +186,6 @@ function AdjustForSuperWidescreen(x, w)
     if not IsSuperWideScreen() then
         return x, w
     end
-
 
     local difference = ((RATIO_16_9) / GetAspectRatio(false))
 
@@ -222,41 +201,27 @@ function IsSuperWideScreen()
 end
 
 function GetMinSafeZone(aspectRatio, bScript)
-    local safezoneSizeX = GetSafeZoneSize()
-    local safezoneSizeY = GetSafeZoneSize()
+    local sz = GetSafeZoneSize()
+    local safezoneSizeX, safezoneSizeY = sz, sz
 
     if (aspectRatio < 1.0) then
         safezoneSizeX = 1.0 - ((1.0 - safezoneSizeX) + (1.0 - aspectRatio))
     end
 
-
     local width, height = GetActualScreenResolution()
+    local offsetW = (width - (width * safezoneSizeX)) * 0.5
+    local offsetH = (height - (height * safezoneSizeY)) * 0.5
 
-    local safeW = width * safezoneSizeX
-    local safeH = height * safezoneSizeY
-    local offsetW = (width - safeW) * 0.5
-    local offsetH = (height - safeH) * 0.5
-
-    -- Round down to lowest area
-    local x0 = math.ceil(offsetW)
-    local y0 = math.ceil(offsetH)
-    local x1 = math.floor(width - offsetW)
-    local y1 = math.floor(height - offsetH)
-
-    x0 /= width
-    y0 /= height
-    x1 /= width
-    y1 /= height
+    local x0 = math.ceil(offsetW) / width
+    local y0 = math.ceil(offsetH) / height
+    local x1 = math.floor(width - offsetW) / width
+    local y1 = math.floor(height - offsetH) / height
 
     if (bScript and IsSuperWideScreen()) then
-        local fDifference = (RATIO_16_9) / GetAspectRatio(true)
-        local fMaxBounds = width * fDifference
-        local fResDif = width - fMaxBounds
-        local fOffsetAbsolute = fResDif * 0.5
-        local fOffsetRelative = fOffsetAbsolute / width
-
-        x0 += fOffsetRelative
-        x1 -= fOffsetRelative
+        local fDifference = RATIO_16_9 / GetAspectRatio(true)
+        local fOffsetRelative = (width - (width * fDifference)) * 0.5 / width
+        x0 = x0 + fOffsetRelative
+        x1 = x1 - fOffsetRelative
     end
     return x0, y0, x1, y1
 end
@@ -283,19 +248,20 @@ function GetMinSafeZoneForScaleformMovies(aspectRatio)
 
     x0 += fSafeZoneAdjust
     x1 -= fSafeZoneAdjust
+
     return x0, y0, x1, y1
 end
 
 function GetAnchorResolutionCoords(alignX, alignY, x, y, w, h)
     local res = ConvertResolutionCoordsToScreenCoords(x, y)
-    local siz = ConvertResolutionSizeToScreenSize(w, h)
-    GetAnchorScreenCoords(alignX, alignY, res.x, res.y, siz.w, siz.h)
+    local size = ConvertResolutionSizeToScreenSize(w, h)
+    return GetAnchorScreenCoords(alignX, alignY, res.x, res.y, size.x, size.y)
 end
 
 function GetAnchorScreenCoords(alignX, alignY, x, y, w, h)
     local component   = {}
 
-    local _cv, _cs    = AdjustNormalized16_9ValuesForCurrentAspectRatio(GetFormatFromString(alignX), x, y, w, h)
+    local _cv, _cs    = AdjustNormalized16_9ValuesForCurrentAspectRatio(alignX, x, y, w, h)
     local cv          = CalculateHudPosition(_cv, _cs, alignX, alignY)
 
     component.Width   = _cs.x
