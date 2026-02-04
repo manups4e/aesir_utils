@@ -101,6 +101,7 @@ exports("GetMinSafeZoneForScaleformMovies", GetMinSafeZoneForScaleformMovies)
 exports("GetMinSafeZone", GetMinSafeZone)
 
 ---Calculates the SafeZone bounds on the screen in usable values.
+---@param aspectRatio number Usually GetAspectRatio(false)
 ---@return number left, number top, number right, number bottom all returned values are in current resolution pixels (ex. 0.0, 0.0, 1920, 1080 - for full screen safezone). 
 exports("GetMinSafeZonePixels", GetMinSafeZonePixels)
 
@@ -113,3 +114,4 @@ exports("GetMinSafeZonePixels", GetMinSafeZonePixels)
 ---@param scale number Changes the minimap overall size, 1.0 is the default value, values < 1.0 will shrink the minimap and values > 1.0 will expand the minimap size.
 ---@return table anchor returns the updated minimap anchor.
 exports("MoveMinimapComponent", MoveMinimapComponent)
+
