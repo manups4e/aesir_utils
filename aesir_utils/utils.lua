@@ -226,6 +226,13 @@ function GetMinSafeZone(aspectRatio, bScript)
     return x0, y0, x1, y1
 end
 
+function GetMinSafeZonePixels(aspectRatio)
+    local x0, y0, x1, y1 = GetMinSafeZone(aspectRatio)
+    local left_top = ConvertScreenCoordsToResolutionCoords(x0, y0)
+    local right_bottom = ConvertScreenCoordsToResolutionCoords(x1, y1)
+    return left_top.x, left_top.y, right_bottom.x, right_bottom.y
+end
+
 function GetDifferenceFrom_16_9_ToCurrentAspectRatio()
     local fOffsetValue = 0.0
 
@@ -353,3 +360,4 @@ function MoveMinimapComponent(x_offset, y_offset, scale)
 
     return GetAnchorScreenCoords("L", "B", posMain.x, posMain.y, MinimapSize.Width, MinimapSize.Height)
 end
+
