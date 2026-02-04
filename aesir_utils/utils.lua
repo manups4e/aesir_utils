@@ -280,3 +280,76 @@ function GetAnchorScreenCoords(alignX, alignY, x, y, w, h)
 
     return component
 end
+
+--- The function will move the minimap around the screen applying offsets to the original positions of both minimap and bigmap
+--- This function works in offsets, setting x and y to 0.0 will restore the minimap original position on the screen.
+--- The natives used to move the minimap work with safezone internally, this cannot be avoided so be sure to adapt your UIs to the safezone as well.
+---@param x_offset number The horizontal offset, expressed in screen coordinates (0.0 to 1.0), positive values move the minimap rightward
+---@param y_offset number The vertical offset, expressed in screen coordinates (0.0 to 1.0), positive values move the minimap downward, negative values will move it upward
+---@param scale number Changes the minimap overall size, 1.0 is the default value, values < 1.0 will shrink the minimap and values > 1.0 will expand the minimap size.
+---@return table anchor returns the updated minimap anchor.
+function MoveMinimapComponent(x_offset, y_offset, scale)
+    if not x_offset then x_offset = 0.0 end
+    if not y_offset then y_offset = 0.0 end
+    if not scale then scale = 1.0 end
+
+    --[[ taken from frontend.xml
+    <data name="minimap"        	alignX="L"	alignY="B"	posX="-0.0045"		posY="0.002"		sizeX="0.150"		sizeY="0.188888" />
+    <data name="minimap_mask"   	alignX="L"	alignY="B"	posX="0.020"		posY="0.032" 	 	sizeX="0.111"		sizeY="0.159" />
+    <data name="minimap_blur"   	alignX="L"	alignY="B"	posX="-0.03"		posY="0.022"		sizeX="0.266"		sizeY="0.237" />
+
+    <data name="bigmap"         	alignX="L"	alignY="B"	posX="-0.003975"	posY="0.022"		sizeX="0.364"		sizeY="0.460416666" />
+    <data name="bigmap_mask"    	alignX="L"	alignY="B"	posX="0.145"		posY="0.015"		sizeX="0.176"		sizeY="0.395" />
+    <data name="bigmap_blur"    	alignX="L"	alignY="B"	posX="-0.019"		posY="0.022"		sizeX="0.262"		sizeY="0.464" />
+]]
+
+    -- default locations with applied offsets (scale is default 1.0, < 1 for smaller minimap, > 1 for bigger minimap)
+
+    local posMain, posMask, posBblur =
+        vector2((-0.0045 + x_offset) * scale, (0.002 + y_offset) * scale),
+        vector2((0.020 + x_offset) * scale, (0.032 + y_offset) * scale),
+        vector2((-0.03 + x_offset) * scale, (0.022 + y_offset) * scale)
+
+    local posBigMap, posBigMask, posBigBlur =
+        vector2((-0.003975 + x_offset) * scale, (0.022 + y_offset) * scale),
+        vector2((0.145 + x_offset) * scale, (0.015 + y_offset) * scale),
+        vector2((-0.019 + x_offset) * scale, (0.022 + y_offset) * scale)
+
+    local MinimapSize, MaskSize, BlurSize =
+        { Width = 0.150 * scale, Height = 0.188888 * scale },
+        { Width = 0.111 * scale, Height = 0.159 * scale },
+        { Width = 0.266 * scale, Height = 0.237 * scale }
+    local MinimapBigmapSize, MaskBigmapSize, BlurBigmapSize =
+        { Width = 0.364 * scale, Height = 0.460416666 * scale },
+        { Width = 0.176 * scale, Height = 0.395 * scale },
+        { Width = 0.262 * scale, Height = 0.464 * scale }
+
+    local mainP, mainS = AdjustNormalized16_9ValuesForCurrentAspectRatio("L", posMain.x, posMain.y, MinimapSize.Width,
+        MinimapSize.Height)
+    local maskP, maskS = AdjustNormalized16_9ValuesForCurrentAspectRatio("L", posMask.x, posMask.y, MaskSize.Width,
+        MaskSize.Height)
+    local blurP, blurS = AdjustNormalized16_9ValuesForCurrentAspectRatio("L", posBblur.x, posBblur.y, BlurSize.Width,
+        BlurSize.Height)
+
+    local mainBigP, mainBigS = AdjustNormalized16_9ValuesForCurrentAspectRatio("L", posBigMap.x, posBigMap.y,
+        MinimapBigmapSize.Width, MinimapBigmapSize.Height)
+    local maskBigP, maskBigS = AdjustNormalized16_9ValuesForCurrentAspectRatio("L", posBigMask.x, posBigMask.y,
+        MaskBigmapSize.Width, MaskBigmapSize.Height)
+    local blurBigP, blurBigS = AdjustNormalized16_9ValuesForCurrentAspectRatio("L", posBigBlur.x, posBigBlur.y,
+        BlurBigmapSize.Width, BlurBigmapSize.Height)
+
+
+    SetMinimapComponentPosition("minimap", "L", "B", mainP.x, mainP.y, mainS.x, mainS.y)
+    SetMinimapComponentPosition("minimap_mask", "L", "B", maskP.x, maskP.y, maskS.x, maskS.y)
+    SetMinimapComponentPosition("minimap_blur", "L", "B", blurP.x, blurP.y, blurS.x, blurS.y)
+
+    SetMinimapComponentPosition("bigmap", "L", "B", mainBigP.x, mainBigP.y, mainBigS.x, mainBigS.y)
+    SetMinimapComponentPosition("bigmap_mask", "L", "B", maskBigP.x, maskBigP.y, maskBigS.x, maskBigS.y)
+    SetMinimapComponentPosition("bigmap_blur", "L", "B", blurBigP.x, blurBigP.y, blurBigS.x, blurBigS.y)
+
+    SetBigmapActive(true, false)
+    Wait(0)
+    SetBigmapActive(false, false)
+
+    return GetAnchorScreenCoords("L", "B", posMain.x, posMain.y, MinimapSize.Width, MinimapSize.Height)
+end
