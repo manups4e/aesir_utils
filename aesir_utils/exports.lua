@@ -94,3 +94,22 @@ exports("ConvertResolutionSizeToScreenSize", ConvertResolutionSizeToScreenSize)
 ---@param aspectRatio number Usually GetAspectRatio(false)
 ---@return number left, number top, number rights, number bottom
 exports("GetMinSafeZoneForScaleformMovies", GetMinSafeZoneForScaleformMovies)
+
+---Calculates the SafeZone bounds on the screen in usable values.
+---@param aspectRatio number Usually GetAspectRatio(false)
+---@return number left, number top, number right, number bottom all returned values are in screen coords (0.0 - 1.0)
+exports("GetMinSafeZone", GetMinSafeZone)
+
+---Calculates the SafeZone bounds on the screen in usable values.
+---@return number left, number top, number right, number bottom all returned values are in current resolution pixels (ex. 0.0, 0.0, 1920, 1080 - for full screen safezone). 
+exports("GetMinSafeZonePixels", GetMinSafeZonePixels)
+
+--- The function will move the minimap around the screen applying offsets to the original positions of both minimap and bigmap
+--- This function works in offsets, setting x and y to 0.0 will restore the minimap original position on the screen.
+--- The natives used to move the minimap work with safezone internally, this CANNOT be avoided so be sure to adapt your UIs to the safezone as well.
+--- You can use the provided utils.lua -> GetMinSafeZone(GetAspectRatio()) for percentage values (0.0 -> 1.0).
+---@param x_offset number The horizontal offset, expressed in screen coordinates (0.0 to 1.0), positive values move the minimap rightward
+---@param y_offset number The vertical offset, expressed in screen coordinates (0.0 to 1.0), positive values move the minimap downward, negative values will move it upward
+---@param scale number Changes the minimap overall size, 1.0 is the default value, values < 1.0 will shrink the minimap and values > 1.0 will expand the minimap size.
+---@return table anchor returns the updated minimap anchor.
+exports("MoveMinimapComponent", MoveMinimapComponent)
