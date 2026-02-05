@@ -355,9 +355,10 @@ function MoveMinimapComponent(x_offset, y_offset, scale)
     SetMinimapComponentPosition("bigmap_blur", "L", "B", blurBigP.x, blurBigP.y, blurBigS.x, blurBigS.y)
 
     SetBigmapActive(true, false)
-    Wait(0)
+    Citizen.Wait(0)
     SetBigmapActive(false, false)
 
     return GetAnchorScreenCoords("L", "B", posMain.x, posMain.y, MinimapSize.Width, MinimapSize.Height)
 end
+
 
