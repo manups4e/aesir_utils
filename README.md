@@ -133,8 +133,7 @@ Directly control the game's radar component with native-safe logic.
 
 | Export | Description |
 | :--- | :--- |
-| `MoveMinimapComponent(x_offset, y_offset, scale)` | Moves the minimap and bigmap by applying offsets to their default positions.<br><br>**Parameters:**<br>• `x_offset`, `y_offset`: Screen coordinates (0.0 - 1.0). Positive X moves right, positive Y moves down. **Set both to `0.0` to restore original position.**<br>• `scale`: Size multiplier. `1.0` is default, `<1.0` shrinks, `>1.0` expands.<br><br>⚠️ **Note:** Natives used here represent the Safezone internally. This cannot be bypassed. Ensure your custom UI elements adapt to the Safezone (use `GetMinSafeZone` in utils) to match the minimap. 
-Returns the updated `GetAnchorScreenCoords` table. |
+| `MoveMinimapComponent(x_offset, y_offset, scale)` | Moves the minimap and bigmap by applying offsets to their default positions.<br><br>**Parameters:**<br>• `x_offset`, `y_offset`: Screen coordinates (0.0 - 1.0). Positive X moves right, positive Y moves down. **Set both to `0.0` to restore original position.**<br>• `scale`: Size multiplier. `1.0` is default, `<1.0` shrinks, `>1.0` expands.<br><br>⚠️ **Note:** Natives used here represent the Safezone internally. This cannot be bypassed. Ensure your custom UI elements adapt to the Safezone (use `GetMinSafeZone` in utils) to match the minimap. Returns the updated `GetAnchorScreenCoords` table. |
 
 ### Utils
 | Export | Description |
