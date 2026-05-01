@@ -3,8 +3,6 @@ Some of the function you see here are taken from ScaleformUI utils,
 courtesy of manups4e (manups4e@gmail.com | https:https://github.com/manups4e)
 Author: manups4e
 Source: https://github.com/manups4e
-
-
 ]]
 
 -- Make the number type detected as integer to avoid multiple lint detections.
@@ -12,11 +10,47 @@ Source: https://github.com/manups4e
 ---@alias integer number
 
 -- This value is the exact result of GetAspectRatio(false) native in 16:9
--- doing 16.0 / 9.0 in Lua changes the value into a 1.7777777777778 due to the floating point precision 
--- GTA natives are coded in C with Float a 32 bit while Lua uses Double at 64 bit which are more precise 
+-- doing 16.0 / 9.0 in Lua changes the value into a 1.7777777777778 due to the floating point precision
+-- GTA natives are coded in C with Float a 32 bit while Lua uses Double at 64 bit which are more precise
 -- but change the outcome resulting IsWideScreen check to always return true even when should be false.
 -- For tactical war precision, we keep the native value from the game.
 local RATIO_16_9 = 1.7777777910233
+
+local MinimapConfig = {
+    ["LB"] = {
+        minimap = { pos = vector2(-0.0045, 0.002), size = vector2(0.150, 0.188888) },
+        minimap_mask = { pos = vector2(0.020, 0.032), size = vector2(0.111, 0.159) },
+        minimap_blur = { pos = vector2(-0.03, 0.022), size = vector2(0.266, 0.237) },
+        bigmap = { pos = vector2(-0.003975, 0.022), size = vector2(0.364, 0.460416666) },
+        bigmap_mask = { pos = vector2(0.145, 0.015), size = vector2(0.176, 0.395) },
+        bigmap_blur = { pos = vector2(-0.019, 0.022), size = vector2(0.262, 0.464) }
+    },
+    ["RB"] = {
+        minimap = { pos = vector2(0.0045, 0.002), size = vector2(0.150, 0.188888) },
+        minimap_mask = { pos = vector2(0.020, 0.032), size = vector2(0.111, 0.159) },
+        minimap_blur = { pos = vector2(0.09, 0.022), size = vector2(0.266, 0.237) },
+        bigmap = { pos = vector2(0.133975, 0.022), size = vector2(0.364, 0.460416666) },
+        bigmap_mask = { pos = vector2(0.245, 0.015), size = vector2(0.176, 0.395) },
+        bigmap_blur = { pos = vector2(0.019, 0.022), size = vector2(0.262, 0.464) }
+    },
+    ["LT"] = {
+        minimap = { pos = vector2(-0.0045, -0.012), size = vector2(0.150, 0.188888) },
+        minimap_mask = { pos = vector2(0.020, 0.042), size = vector2(0.111, 0.159) },
+        minimap_blur = { pos = vector2(-0.03, -0.052), size = vector2(0.266, 0.237) },
+        bigmap = { pos = vector2(-0.003975, -0.022), size = vector2(0.364, 0.460416666) },
+        bigmap_mask = { pos = vector2(0.145, 0.015), size = vector2(0.176, 0.395) },
+        bigmap_blur = { pos = vector2(-0.019, -0.022), size = vector2(0.262, 0.464) }
+    },
+    ["RT"] = {
+        minimap = { pos = vector2(0.0045, -0.012), size = vector2(0.150, 0.188888) },
+        minimap_mask = { pos = vector2(0.020, 0.042), size = vector2(0.111, 0.159) },
+        minimap_blur = { pos = vector2(0.09, -0.052), size = vector2(0.266, 0.237) },
+        bigmap = { pos = vector2(0.133975, -0.022), size = vector2(0.364, 0.460416666) },
+        bigmap_mask = { pos = vector2(0.245, 0.015), size = vector2(0.176, 0.395) },
+        bigmap_blur = { pos = vector2(0.019, -0.022), size = vector2(0.262, 0.464) }
+    }
+}
+
 
 function math.round(num, numDecimalPlaces)
     if numDecimalPlaces then
@@ -65,8 +99,8 @@ end
 
 function ConvertResolutionCoordsToScreenCoords(x, y)
     local w, h = GetActualScreenResolution()
-    local normalizedX = math.max(0.0, math.min(1.0, x / w))
-    local normalizedY = math.max(0.0, math.min(1.0, y / h))
+    local normalizedX = x / w
+    local normalizedY = y / h
     return vector2(normalizedX, normalizedY)
 end
 
@@ -113,12 +147,12 @@ end
 
 function ConvertResolutionSizeToScreenSize(width, height)
     local w, h = GetActualScreenResolution()
-    local normalizedWidth = math.max(0.0, math.min(1.0, width / w))
-    local normalizedHeight = math.max(0.0, math.min(1.0, height / h))
+    local normalizedWidth = width / w
+    local normalizedHeight = height / h
     return vector2(normalizedWidth, normalizedHeight)
 end
 
-function AdjustNormalized16_9ValuesForCurrentAspectRatio(hAlign, x, y, w, h)
+function AdjustNormalized16_9ValuesForCurrentAspectRatio(hAlign, x, y, w, h, isMinimap)
     local currentRatio = GetAspectRatio(false)
 
     -- SuperWide Check
@@ -135,37 +169,44 @@ function AdjustNormalized16_9ValuesForCurrentAspectRatio(hAlign, x, y, w, h)
 
     -- 2. handle x position based on alignment
     x = x * fScalar
-    if hAlign == 'C' then -- CENTRE
+    if hAlign == 'C' then          -- CENTRE
         x = x + (fAdjustPos * 0.5) -- this centers the 16:9 into current format
+    elseif hAlign == "R" and isMinimap then
+        x = x + (1.0 - (currentRatio / RATIO_16_9))
     end
 
     -- SuperWide fix
-    x, w = AdjustForSuperWidescreen(x, w)
+    if (not isMinimap) then
+        x, w = AdjustForSuperWidescreen(x, w)
+    end
     return vector2(x, y), vector2(w, h)
 end
 
 function CalculateHudPosition(offset, size, alignX, alignY)
     local x0, y0, x1, y1 = GetMinSafeZone(1.0)
     local safeMin, safeMax = vector2(x0, y0), vector2(x1, y1)
-    local posX, posY = 0.0, 0.0
+    local origin = vector2(0.0, 0.0)
 
     if alignX == 'L' then
-        posX = safeMin.x
+        origin = vector2(safeMin.x, origin.y)
     elseif alignX == 'R' then
-        posX = safeMax.x - size.x
+        -- SafeMax - Size
+        origin = vector2(safeMax.x - size.x, origin.y)
     elseif alignX == 'C' then
-        posX = (safeMin.x + safeMax.x - size.x) * 0.5
+        local centerX = (safeMin.x + safeMax.x - size.x) * 0.5
+        origin = vector2(centerX, origin.y)
     end
 
     if alignY == 'T' then
-        posY = safeMin.y
+        origin = vector2(origin.x, safeMin.y)
     elseif alignY == 'B' then
-        posY = safeMax.y - size.y
+        origin = vector2(origin.x, safeMax.y - size.y)
     elseif alignY == 'C' then
-        posY = (safeMin.y + safeMax.y - size.y) * 0.5
+        local centerY = (safeMin.y + safeMax.y - size.y) * 0.5
+        origin = vector2(origin.x, centerY)
     end
 
-    return vector2(posX, posY) + offset
+    return origin + offset
 end
 
 function GetWideScreen()
@@ -218,7 +259,7 @@ function GetMinSafeZone(aspectRatio, bScript)
     local y1 = math.floor(height - offsetH) / height
 
     if (bScript and IsSuperWideScreen()) then
-        local fDifference = RATIO_16_9 / GetAspectRatio(true)
+        local fDifference = RATIO_16_9 / GetAspectRatio(true) -- true means multi-monitor widescreen
         local fOffsetRelative = (width - (width * fDifference)) * 0.5 / width
         x0 = x0 + fOffsetRelative
         x1 = x1 - fOffsetRelative
@@ -253,8 +294,8 @@ function GetMinSafeZoneForScaleformMovies(aspectRatio)
 
     local fSafeZoneAdjust = GetDifferenceFrom_16_9_ToCurrentAspectRatio()
 
-    x0 += fSafeZoneAdjust
-    x1 -= fSafeZoneAdjust
+    x0 = x0 + fSafeZoneAdjust
+    x1 = x1 - fSafeZoneAdjust
 
     return x0, y0, x1, y1
 end
@@ -300,64 +341,81 @@ function MoveMinimapComponent(x_offset, y_offset, scale)
     if not y_offset then y_offset = 0.0 end
     if not scale then scale = 1.0 end
 
-    --[[ taken from frontend.xml
-    <data name="minimap"        	alignX="L"	alignY="B"	posX="-0.0045"		posY="0.002"		sizeX="0.150"		sizeY="0.188888" />
-    <data name="minimap_mask"   	alignX="L"	alignY="B"	posX="0.020"		posY="0.032" 	 	sizeX="0.111"		sizeY="0.159" />
-    <data name="minimap_blur"   	alignX="L"	alignY="B"	posX="-0.03"		posY="0.022"		sizeX="0.266"		sizeY="0.237" />
+    local current = MinimapConfig[(string.upper("L") .. string.upper("B"))]
+    local results = {}
 
-    <data name="bigmap"         	alignX="L"	alignY="B"	posX="-0.003975"	posY="0.022"		sizeX="0.364"		sizeY="0.460416666" />
-    <data name="bigmap_mask"    	alignX="L"	alignY="B"	posX="0.145"		posY="0.015"		sizeX="0.176"		sizeY="0.395" />
-    <data name="bigmap_blur"    	alignX="L"	alignY="B"	posX="-0.019"		posY="0.022"		sizeX="0.262"		sizeY="0.464" />
-]]
+    local componentNames = { "minimap", "minimap_mask", "minimap_blur", "bigmap", "bigmap_mask", "bigmap_blur" }
 
-    -- default locations with applied offsets (scale is default 1.0, < 1 for smaller minimap, > 1 for bigger minimap)
+    for _, name in ipairs(componentNames) do
+        local data = current[name]
 
-    local posMain, posMask, posBblur =
-        vector2((-0.0045 + x_offset) * scale, (0.002 + y_offset) * scale),
-        vector2((0.020 + x_offset) * scale, (0.032 + y_offset) * scale),
-        vector2((-0.03 + x_offset) * scale, (0.022 + y_offset) * scale)
+        local posX = (data.pos.x + x_offset) * scale
+        local posY = (data.pos.y + y_offset) * scale
+        local sizeX = data.size.x * scale
+        local sizeY = data.size.y * scale
 
-    local posBigMap, posBigMask, posBigBlur =
-        vector2((-0.003975 + x_offset) * scale, (0.022 + y_offset) * scale),
-        vector2((0.145 + x_offset) * scale, (0.015 + y_offset) * scale),
-        vector2((-0.019 + x_offset) * scale, (0.022 + y_offset) * scale)
+        local p, s = AdjustNormalized16_9ValuesForCurrentAspectRatio("L", posX, posY, sizeX, sizeY, true)
+        local a, b = AdjustNormalized16_9ValuesForCurrentAspectRatio("L", posX, posY, sizeX, sizeY, false)
+        --- one for the minimap, one for the anchor
+        results[name] = { p = a, s = b }
 
-    local MinimapSize, MaskSize, BlurSize =
-        { Width = 0.150 * scale, Height = 0.188888 * scale },
-        { Width = 0.111 * scale, Height = 0.159 * scale },
-        { Width = 0.266 * scale, Height = 0.237 * scale }
-    local MinimapBigmapSize, MaskBigmapSize, BlurBigmapSize =
-        { Width = 0.364 * scale, Height = 0.460416666 * scale },
-        { Width = 0.176 * scale, Height = 0.395 * scale },
-        { Width = 0.262 * scale, Height = 0.464 * scale }
+        SetMinimapComponentPosition(name, "L", "B", p.x, p.y, s.x, s.y)
+    end
 
-    local mainP, mainS = AdjustNormalized16_9ValuesForCurrentAspectRatio("L", posMain.x, posMain.y, MinimapSize.Width,
-        MinimapSize.Height)
-    local maskP, maskS = AdjustNormalized16_9ValuesForCurrentAspectRatio("L", posMask.x, posMask.y, MaskSize.Width,
-        MaskSize.Height)
-    local blurP, blurS = AdjustNormalized16_9ValuesForCurrentAspectRatio("L", posBblur.x, posBblur.y, BlurSize.Width,
-        BlurSize.Height)
+    return GetAnchorScreenCoords("L", "B", results.minimap.p.x, results.minimap.p.y, results.minimap.s.x,
+        results.minimap.s.y)
+end
 
-    local mainBigP, mainBigS = AdjustNormalized16_9ValuesForCurrentAspectRatio("L", posBigMap.x, posBigMap.y,
-        MinimapBigmapSize.Width, MinimapBigmapSize.Height)
-    local maskBigP, maskBigS = AdjustNormalized16_9ValuesForCurrentAspectRatio("L", posBigMask.x, posBigMask.y,
-        MaskBigmapSize.Width, MaskBigmapSize.Height)
-    local blurBigP, blurBigS = AdjustNormalized16_9ValuesForCurrentAspectRatio("L", posBigBlur.x, posBigBlur.y,
-        BlurBigmapSize.Width, BlurBigmapSize.Height)
+--- The function will move the minimap around the screen applying offsets based on the desired alignments
+--- This function works in offsets, setting x and y to 0.0 will restore the minimap original position on the screen based on the desired alignment.
+--- The natives used to move the minimap work with safezone internally, this cannot be avoided so be sure to adapt your UIs to the safezone as well.
+---@param alignX string The desired horizontal alignment, use L or R
+---@param alignY string The desired vertical alignment, use T or B
+---@param x_offset number The horizontal offset, expressed in screen coordinates (0.0 to 1.0), positive values move the minimap rightward
+---@param y_offset number The vertical offset, expressed in screen coordinates (0.0 to 1.0), positive values move the minimap downward, negative values will move it upward
+---@param scale number Changes the minimap overall size, 1.0 is the default value, values < 1.0 will shrink the minimap and values > 1.0 will expand the minimap size.
+---@return table anchor returns the updated minimap anchor.
+function MoveMinimapComponentWithAnchor(alignX, alignY, x_offset, y_offset, scale)
+    alignX = alignX or "L"
+    alignY = alignY or "B"
+    x_offset = x_offset or 0.0
+    y_offset = y_offset or 0.0
+    scale = scale or 1.0
 
+    local current = MinimapConfig[(string.upper(alignX) .. string.upper(alignY))]
+    local results = {}
 
-    SetMinimapComponentPosition("minimap", "L", "B", mainP.x, mainP.y, mainS.x, mainS.y)
-    SetMinimapComponentPosition("minimap_mask", "L", "B", maskP.x, maskP.y, maskS.x, maskS.y)
-    SetMinimapComponentPosition("minimap_blur", "L", "B", blurP.x, blurP.y, blurS.x, blurS.y)
+    local componentNames = { "minimap", "minimap_mask", "minimap_blur", "bigmap", "bigmap_mask", "bigmap_blur" }
 
-    SetMinimapComponentPosition("bigmap", "L", "B", mainBigP.x, mainBigP.y, mainBigS.x, mainBigS.y)
-    SetMinimapComponentPosition("bigmap_mask", "L", "B", maskBigP.x, maskBigP.y, maskBigS.x, maskBigS.y)
-    SetMinimapComponentPosition("bigmap_blur", "L", "B", blurBigP.x, blurBigP.y, blurBigS.x, blurBigS.y)
+    for _, name in ipairs(componentNames) do
+        local data = current[name]
 
+        local posX = (data.pos.x + x_offset) * scale
+        local posY = (data.pos.y + y_offset) * scale
+        local sizeX = data.size.x * scale
+        local sizeY = data.size.y * scale
+
+        local p, s = AdjustNormalized16_9ValuesForCurrentAspectRatio(alignX, posX, posY, sizeX, sizeY, true)
+        local a, b = AdjustNormalized16_9ValuesForCurrentAspectRatio(alignX, posX, posY, sizeX, sizeY, false)
+        --- one for the minimap, one for the anchor
+        results[name] = { p = a, s = b }
+
+        SetMinimapComponentPosition(name, alignX, alignY, p.x, p.y, s.x, s.y)
+    end
+
+    -- Forza l'aggiornamento grafico
     SetBigmapActive(true, false)
     Wait(0)
     SetBigmapActive(false, false)
 
-    return GetAnchorScreenCoords("L", "B", posMain.x, posMain.y, MinimapSize.Width, MinimapSize.Height)
+    return GetAnchorScreenCoords(alignX, alignY, results.minimap.p.x, results.minimap.p.y, results.minimap.s.x,
+        results.minimap.s.y)
 end
 
+Citizen.CreateThread(function()
+    local a = MoveMinimapComponentWithAnchor("R", "T")
+    while true do
+        Wait(0)
+        DrawRect(a.CenterX, a.CenterY, a.Width, a.Height, 255, 0, 0, 50)
+    end
+end)
