@@ -92,7 +92,7 @@ exports("ConvertResolutionSizeToScreenSize", ConvertResolutionSizeToScreenSize)
 
 ---Calculates the SafeZone bounds for Scaleform movies, adjusting for aspect ratio differences.
 ---@param aspectRatio number Usually GetAspectRatio(false)
----@return number left, number top, number rights, number bottom
+---@return number left, number top, number right, number bottom values are in screen coords (0.0 - 1.0)
 exports("GetMinSafeZoneForScaleformMovies", GetMinSafeZoneForScaleformMovies)
 
 ---Calculates the SafeZone bounds on the screen in usable values.
@@ -101,9 +101,9 @@ exports("GetMinSafeZoneForScaleformMovies", GetMinSafeZoneForScaleformMovies)
 exports("GetMinSafeZone", GetMinSafeZone)
 
 ---Calculates the SafeZone bounds on the screen in usable values.
----@param aspectRatio number Usually GetAspectRatio(false)
 ---@return number left, number top, number right, number bottom all returned values are in current resolution pixels (ex. 0.0, 0.0, 1920, 1080 - for full screen safezone). 
 exports("GetMinSafeZonePixels", GetMinSafeZonePixels)
+
 
 --- The function will move the minimap around the screen applying offsets to the original positions of both minimap and bigmap
 --- This function works in offsets, setting x and y to 0.0 will restore the minimap original position on the screen.
@@ -113,5 +113,15 @@ exports("GetMinSafeZonePixels", GetMinSafeZonePixels)
 ---@param y_offset number The vertical offset, expressed in screen coordinates (0.0 to 1.0), positive values move the minimap downward, negative values will move it upward
 ---@param scale number Changes the minimap overall size, 1.0 is the default value, values < 1.0 will shrink the minimap and values > 1.0 will expand the minimap size.
 ---@return table anchor returns the updated minimap anchor.
-exports("MoveMinimapComponent", MoveMinimapComponent)
+exports("MoveMinimapComponent", MoveMinimapComponent)--- The function will move the minimap around the screen applying offsets to the original positions of both minimap and bigmap
 
+--- The function will move the minimap around the screen applying offsets based on the desired alignments
+--- This function works in offsets, setting x and y to 0.0 will restore the minimap original position on the screen based on the desired alignment.
+--- The natives used to move the minimap work with safezone internally, this cannot be avoided so be sure to adapt your UIs to the safezone as well.
+---@param alignX string The desired horizontal alignment, use L or R
+---@param alignY string The desired vertical alignment, use T or B
+---@param x_offset number The horizontal offset, expressed in screen coordinates (0.0 to 1.0), positive values move the minimap rightward
+---@param y_offset number The vertical offset, expressed in screen coordinates (0.0 to 1.0), positive values move the minimap downward, negative values will move it upward
+---@param scale number Changes the minimap overall size, 1.0 is the default value, values < 1.0 will shrink the minimap and values > 1.0 will expand the minimap size.
+---@return table anchor returns the updated minimap anchor.
+exports("MoveMinimapComponentWithAnchor", MoveMinimapComponentWithAnchor)
